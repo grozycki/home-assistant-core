@@ -13,8 +13,18 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
-from .const import DOMAIN
-from .const import WEATHER_DATA
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+    SensorStateClass,
+)
+
+from .const import (
+    DOMAIN,
+    TEMPERATURE_DATA,
+    HUMIDITY_DATA
+)
 from .sensor import KtwItsSensorEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,6 +45,11 @@ class KtwItsDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         data: dict[str, str | float | int] = {}
 
-        data[WEATHER_DATA] = await self.my_api.get_weather()
+        weather = await self.my_api.get_weather()
+
+        data[SensorDeviceClass.TEMPERATURE] = float(weather['temperature'])
+        data[SensorDeviceClass.HUMIDITY] = int(weather['humidity'])
+        data[SensorDeviceClass.PM10] = float(weather['pm10'])
+        data[SensorDeviceClass.PM25] = float(weather['pm2_5'])
 
         return data

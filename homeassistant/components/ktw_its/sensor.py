@@ -39,7 +39,7 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 
-SCAN_INTERVAL = timedelta(seconds=60)
+SCAN_INTERVAL = timedelta(seconds=10)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -68,13 +68,12 @@ class KtwItsSensorEntity(CoordinatorEntity, SensorEntity):
             name=DEFAULT_NAME,
         )
 
-    def update(self) -> None:
-        self._attr_native_value = 23
+    # def update(self) -> None:
+    #     self._attr_native_value = 23
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        print(self.coordinator.data["weather"]["temperature"])
-        self._sensor_data = self.coordinator.data["weather"]["temperature"]
+        self._attr_native_value = self.coordinator.data[self.entity_description.key]
         self.async_write_ha_state()
 
 
@@ -87,11 +86,21 @@ SENSORS: tuple[KtwItsSensorEntityDescription, ...] = (
     KtwItsSensorEntityDescription(
         key=SensorDeviceClass.TEMPERATURE,
         device_class=SensorDeviceClass.TEMPERATURE,
-        state_class=SensorStateClass.MEASUREMENT
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS
     ),
     KtwItsSensorEntityDescription(
         key=SensorDeviceClass.HUMIDITY,
         device_class=SensorDeviceClass.HUMIDITY,
-        state_class=SensorStateClass.MEASUREMENT
+        native_unit_of_measurement=PERCENTAGE
+    ),
+    KtwItsSensorEntityDescription(
+        key=SensorDeviceClass.PM10,
+        device_class=SensorDeviceClass.PM10,
+        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
+    ),
+    KtwItsSensorEntityDescription(
+        key=SensorDeviceClass.PM25,
+        device_class=SensorDeviceClass.PM25,
+        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
     ),
 )
