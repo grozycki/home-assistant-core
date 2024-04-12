@@ -17,13 +17,21 @@ from .const import WEATHER_DATA
     # print(weather)
 
 
-async def make_request(url):
+async def make_request(url: str):
+    print(url)
     ssl_context = ssl.create_default_context(cafile=certifi.where())
     conn = aiohttp.TCPConnector(ssl=ssl_context)
     async with aiohttp.ClientSession(connector=conn) as session:
         async with session.get(url) as resp:
             return await resp.json()
 
+async def make_request_read(url: str):
+    print(url)
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    conn = aiohttp.TCPConnector(ssl=ssl_context)
+    async with aiohttp.ClientSession(connector=conn) as session:
+        async with session.get(url) as resp:
+            return await resp.read()
 
 ##asyncio.run(main())
 
@@ -35,6 +43,14 @@ class KtwItsApi:
         }
     async def get_camera_images_by_id(self, camera_id: int):
         return await make_request('https://its.katowice.eu/api/cameras/' + str(camera_id) + '/images')
+
+    async def get_camera_image(self, camera_id: int, image_id: int) -> bytes | None:
+        print('get_camera_image in api')
+
+        images = await make_request('https://its.katowice.eu/api/cameras/' + str(camera_id) + '/images')
+        filename = images['images'][image_id]['filename']
+
+        return await make_request_read('https://its.katowice.eu/api/camera/image/' + str(camera_id) + '/' + filename)
 
     async def get_cameras(self):
         return await make_request('https://its.katowice.eu/api/cameras')

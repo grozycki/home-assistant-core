@@ -9,7 +9,10 @@ from .const import DOMAIN
 from .api import KtwItsApi
 from .coordinator import KtwItsDataUpdateCoordinator
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [
+    Platform.SENSOR,
+    Platform.IMAGE
+]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

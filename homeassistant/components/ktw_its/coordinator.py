@@ -38,7 +38,7 @@ class KtwItsDataUpdateCoordinator(DataUpdateCoordinator):
             # Name of the data. For logging purposes.
             name="My sensor",
             # Polling interval. Will only be polled if there are subscribers.
-            update_interval=timedelta(seconds=30),
+            update_interval=timedelta(seconds=15),
         )
         self.my_api = my_api
 
@@ -52,4 +52,19 @@ class KtwItsDataUpdateCoordinator(DataUpdateCoordinator):
         data[SensorDeviceClass.PM10] = float(weather['pm10'])
         data[SensorDeviceClass.PM25] = float(weather['pm2_5'])
 
+       #
+       #  camera_372 = await self.my_api.get_camera_images_by_id(372)
+       #
+       # #### print(camera_372)
+       #
+       #  data["372"] = camera_372['images'][0]['code']
+
+
         return data
+
+    async def get_cameras(self):
+        return await self.my_api.get_cameras
+
+    async def get_camera_image(self, camera_id: int, image_id: int) -> bytes | None:
+        print('get_camera_image in coordinator')
+        return await self.my_api.get_camera_image(camera_id, image_id)
