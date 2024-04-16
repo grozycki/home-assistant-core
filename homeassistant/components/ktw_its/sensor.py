@@ -33,10 +33,12 @@ from datetime import timedelta
 
 from homeassistant.const import (
     CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+    CONCENTRATION_PARTS_PER_MILLION,
     CONF_NAME,
     PERCENTAGE,
     UnitOfPressure,
     UnitOfTemperature,
+    UnitOfSpeed,
 )
 
 SCAN_INTERVAL = timedelta(seconds=120)
@@ -89,9 +91,54 @@ SENSORS: tuple[KtwItsSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS
     ),
     KtwItsSensorEntityDescription(
+        key=SensorDeviceClass.PRESSURE,
+        device_class=SensorDeviceClass.PRESSURE,
+        native_unit_of_measurement=UnitOfPressure.HPA
+    ),
+    KtwItsSensorEntityDescription(
         key=SensorDeviceClass.HUMIDITY,
         device_class=SensorDeviceClass.HUMIDITY,
         native_unit_of_measurement=PERCENTAGE
+    ),
+    KtwItsSensorEntityDescription(
+        key=SensorDeviceClass.WIND_SPEED,
+        device_class=SensorDeviceClass.WIND_SPEED,
+        native_unit_of_measurement=UnitOfSpeed.METERS_PER_SECOND
+    ),
+    KtwItsSensorEntityDescription(
+        key=SensorDeviceClass.AQI,
+        device_class=SensorDeviceClass.AQI,
+        native_unit_of_measurement=None
+    ),
+    KtwItsSensorEntityDescription(
+        key=SensorDeviceClass.CO,
+        device_class=SensorDeviceClass.CO,
+        native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION
+    ),
+    KtwItsSensorEntityDescription(
+        key=SensorDeviceClass.NITROGEN_MONOXIDE,
+        device_class=SensorDeviceClass.NITROGEN_MONOXIDE,
+        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
+    ),
+    KtwItsSensorEntityDescription(
+        key=SensorDeviceClass.NITROGEN_DIOXIDE,
+        device_class=SensorDeviceClass.NITROGEN_DIOXIDE,
+        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
+    ),
+    KtwItsSensorEntityDescription(
+        key=SensorDeviceClass.OZONE,
+        device_class=SensorDeviceClass.OZONE,
+        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
+    ),
+    KtwItsSensorEntityDescription(
+        key=SensorDeviceClass.SULPHUR_DIOXIDE,
+        device_class=SensorDeviceClass.SULPHUR_DIOXIDE,
+        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
+    ),
+    KtwItsSensorEntityDescription(
+        key=SensorDeviceClass.PM25,
+        device_class=SensorDeviceClass.PM25,
+        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
     ),
     KtwItsSensorEntityDescription(
         key=SensorDeviceClass.PM10,
@@ -99,8 +146,13 @@ SENSORS: tuple[KtwItsSensorEntityDescription, ...] = (
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
     ),
     KtwItsSensorEntityDescription(
-        key=SensorDeviceClass.PM25,
-        device_class=SensorDeviceClass.PM25,
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
+        key='sunrise',
+        device_class=SensorDeviceClass.TIMESTAMP,
+        native_unit_of_measurement=None
+    ),
+    KtwItsSensorEntityDescription(
+        key='sunset',
+        device_class=SensorDeviceClass.TIMESTAMP,
+        native_unit_of_measurement=None
     ),
 )

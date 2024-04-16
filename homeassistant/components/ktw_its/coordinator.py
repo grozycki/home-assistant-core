@@ -50,14 +50,26 @@ class KtwItsDataUpdateCoordinator(DataUpdateCoordinator):
         self.my_api = my_api
 
     async def _async_update_data(self):
-        data: dict[str, str | float | int] = {}
+        data: dict[str, str | float | int | datetime] = {}
 
         weather = await self.my_api.get_weather()
 
         data[SensorDeviceClass.TEMPERATURE] = float(weather['temperature'])
+        data[SensorDeviceClass.PRESSURE] = int(weather['pressure'])
         data[SensorDeviceClass.HUMIDITY] = int(weather['humidity'])
-        data[SensorDeviceClass.PM10] = float(weather['pm10'])
+
+        data[SensorDeviceClass.WIND_SPEED] = float(weather['windSpeed'])
+        data[SensorDeviceClass.AQI] = int(weather['aqi'])
+        data[SensorDeviceClass.CO] = float(weather['co'])
+        data[SensorDeviceClass.NITROGEN_MONOXIDE] = float(weather['no'])
+        data[SensorDeviceClass.NITROGEN_DIOXIDE] = float(weather['no2'])
+        data[SensorDeviceClass.OZONE] = float(weather['o3'])
+        data[SensorDeviceClass.SULPHUR_DIOXIDE] = float(weather['so2'])
         data[SensorDeviceClass.PM25] = float(weather['pm2_5'])
+        data[SensorDeviceClass.PM10] = float(weather['pm10'])
+
+        data['sunrise'] = datetime.fromisoformat(weather['sunrise'])
+        data['sunset'] = datetime.fromisoformat(weather['sunset'])
 
         return data
 
