@@ -4,7 +4,7 @@ import ssl
 import certifi
 
 from .const import WEATHER_DATA
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 from .coordinator import KtwItsCameraImageDto, KtwItsSensorDto
 from collections.abc import Iterable
@@ -95,11 +95,11 @@ class KtwItsApi:
         return await make_request('https://its.katowice.eu/api/cameras')
 
     async def __get_weather(self) -> Iterable[KtwItsSensorDto]:
-        if self.weather_data_valid_to is not None and self.weather_data_valid_to <= pytz.UTC.localize(datetime.now()):
+        if self.weather_data_valid_to is not None and self.weather_data_valid_to >= datetime.now(timezone.utc):
             return self.weather_data
 
         weather = await make_request('https://its.katowice.eu/api/v1/weather/air')
-        self.weather_data_valid_to = datetime.fromisoformat(weather['date']) + timedelta(minutes=15)
+        self.weather_data_valid_to = datetime.fromisoformat(weather['date']) + timedelta(minutes=20)
 
         self.weather_data.update(
             [
