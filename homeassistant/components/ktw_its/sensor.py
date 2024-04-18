@@ -41,7 +41,7 @@ from homeassistant.const import (
     UnitOfSpeed,
 )
 
-SCAN_INTERVAL = timedelta(seconds=120)
+SCAN_INTERVAL = timedelta(seconds=60)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -54,15 +54,15 @@ class KtwItsSensorEntity(CoordinatorEntity, SensorEntity):
     def __init__(
             self,
             coordinator: CoordinatorEntity,
-            description: KtwItsSensorEntityDescription
+            entity_description: KtwItsSensorEntityDescription
     ) -> None:
         """Pass coordinator to CoordinatorEntity."""
-        super().__init__(coordinator, context=description.key)
+        super().__init__(coordinator, context=entity_description.group)
 
         _device_id = "ktw-its"
 
-        self.entity_description = description
-        self._attr_unique_id = f"{_device_id}-{description.key.lower()}"
+        self.entity_description = entity_description
+        self._attr_unique_id = f"{_device_id}-{entity_description.key.lower()}"
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
             identifiers={(DOMAIN, _device_id)},
@@ -75,82 +75,101 @@ class KtwItsSensorEntity(CoordinatorEntity, SensorEntity):
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        self._attr_native_value = self.coordinator.data[self.entity_description.key]
-        self.async_write_ha_state()
+        if self.coordinator.data[self.entity_description.key]:
+            self._attr_native_value = self.coordinator.data[self.entity_description.key].value
+            self.async_write_ha_state()
 
 
 @dataclass(frozen=True, kw_only=True)
 class KtwItsSensorEntityDescription(SensorEntityDescription):
+    group: str
+    key: str
+    device_class: SensorDeviceClass | None = None
+    native_unit_of_measurement: str | None = None
     state_class = SensorStateClass.MEASUREMENT
 
 
 SENSORS: tuple[KtwItsSensorEntityDescription, ...] = (
     KtwItsSensorEntityDescription(
+        group='weather',
         key=SensorDeviceClass.TEMPERATURE,
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS
     ),
     KtwItsSensorEntityDescription(
+        group='weather',
         key=SensorDeviceClass.PRESSURE,
         device_class=SensorDeviceClass.PRESSURE,
         native_unit_of_measurement=UnitOfPressure.HPA
     ),
     KtwItsSensorEntityDescription(
+        group='weather',
         key=SensorDeviceClass.HUMIDITY,
         device_class=SensorDeviceClass.HUMIDITY,
         native_unit_of_measurement=PERCENTAGE
     ),
     KtwItsSensorEntityDescription(
+        group='weather',
         key=SensorDeviceClass.WIND_SPEED,
         device_class=SensorDeviceClass.WIND_SPEED,
         native_unit_of_measurement=UnitOfSpeed.METERS_PER_SECOND
     ),
     KtwItsSensorEntityDescription(
+        group='weather',
         key=SensorDeviceClass.AQI,
         device_class=SensorDeviceClass.AQI,
         native_unit_of_measurement=None
     ),
     KtwItsSensorEntityDescription(
+        group='weather',
         key=SensorDeviceClass.CO,
         device_class=SensorDeviceClass.CO,
         native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION
     ),
     KtwItsSensorEntityDescription(
+        group='weather',
         key=SensorDeviceClass.NITROGEN_MONOXIDE,
         device_class=SensorDeviceClass.NITROGEN_MONOXIDE,
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
     ),
     KtwItsSensorEntityDescription(
+        group='weather',
         key=SensorDeviceClass.NITROGEN_DIOXIDE,
         device_class=SensorDeviceClass.NITROGEN_DIOXIDE,
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
     ),
     KtwItsSensorEntityDescription(
+        group='weather',
         key=SensorDeviceClass.OZONE,
         device_class=SensorDeviceClass.OZONE,
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
     ),
     KtwItsSensorEntityDescription(
+        group='weather',
         key=SensorDeviceClass.SULPHUR_DIOXIDE,
         device_class=SensorDeviceClass.SULPHUR_DIOXIDE,
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
     ),
     KtwItsSensorEntityDescription(
+        group='weather',
         key=SensorDeviceClass.PM25,
         device_class=SensorDeviceClass.PM25,
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
     ),
     KtwItsSensorEntityDescription(
+        group='weather',
         key=SensorDeviceClass.PM10,
         device_class=SensorDeviceClass.PM10,
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
     ),
     KtwItsSensorEntityDescription(
+        group='weather',
         key='sunrise',
         device_class=SensorDeviceClass.TIMESTAMP,
         native_unit_of_measurement=None
     ),
     KtwItsSensorEntityDescription(
+        group='weather',
         key='sunset',
         device_class=SensorDeviceClass.TIMESTAMP,
         native_unit_of_measurement=None
