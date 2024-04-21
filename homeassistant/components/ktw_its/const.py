@@ -7,3 +7,5 @@ TEMPERATURE_DATA = "temperature"
 HUMIDITY_DATA = "humidity"
 
 DEFAULT_NAME = "ITS Katowice"
+
+ATTRIBUTION = "ITS Katowice (Miejski Zarząd Ulic i Mostów w Katowicach)"

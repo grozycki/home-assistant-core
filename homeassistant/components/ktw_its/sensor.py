@@ -27,7 +27,7 @@ from homeassistant.helpers.update_coordinator import (
 from homeassistant.core import callback
 from .const import (
     DOMAIN,
-    DEFAULT_NAME
+    DEFAULT_NAME, ATTRIBUTION
 )
 from datetime import timedelta
 
@@ -46,37 +46,44 @@ SCAN_INTERVAL = timedelta(seconds=60)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    entities = [KtwItsSensorEntity(coordinator, description) for description in SENSORS]
+    api_data = await coordinator.api.fetch_data()
+    entities = [KtwItsSensorEntity(coordinator, dto.entity_description) for dto in api_data.values()]
     async_add_entities(entities, False)
 
 
 class KtwItsSensorEntity(CoordinatorEntity, SensorEntity):
+    _attr_attribution = ATTRIBUTION
+    _attr_has_entity_name = True
+    _icon: str | None = None
+    _state_attributes: dict[str, str | float | datetime] | None = None
+
     def __init__(
             self,
-            coordinator: CoordinatorEntity,
+            coordinator: DataUpdateCoordinator,
             entity_description: KtwItsSensorEntityDescription
     ) -> None:
         """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator, context=entity_description.group)
-
-        _device_id = "ktw-its"
-
         self.entity_description = entity_description
-        self._attr_unique_id = f"{_device_id}-{entity_description.key.lower()}"
-        self._attr_device_info = DeviceInfo(
-            entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, _device_id)},
-            manufacturer=DEFAULT_NAME,
-            name=DEFAULT_NAME,
-        )
+        self._attr_unique_id = entity_description.key
+        self._attr_name = entity_description.name
+        self._attr_device_info = entity_description.device_info
+        self._icon = entity_description.icon
+        self.entity_id = 'sensor.{0}'.format(entity_description.key)
 
-    # def update(self) -> None:
-    #     self._attr_native_value = 23
+    @property
+    def extra_state_attributes(self) -> dict[str, str | float | datetime] | None:
+        return self._state_attributes
+
+    @property
+    def icon(self) -> str | None:
+        return self._icon
 
     @callback
     def _handle_coordinator_update(self) -> None:
         if self.coordinator.data[self.entity_description.key]:
-            self._attr_native_value = self.coordinator.data[self.entity_description.key].value
+            self._attr_native_value = self.coordinator.data[self.entity_description.key].state
+            self._state_attributes = self.coordinator.data[self.entity_description.key].state_attributes
             self.async_write_ha_state()
 
 
@@ -86,92 +93,7 @@ class KtwItsSensorEntityDescription(SensorEntityDescription):
     key: str
     device_class: SensorDeviceClass | None = None
     native_unit_of_measurement: str | None = None
-    state_class = SensorStateClass.MEASUREMENT
-
-
-SENSORS: tuple[KtwItsSensorEntityDescription, ...] = (
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key=SensorDeviceClass.TEMPERATURE,
-        device_class=SensorDeviceClass.TEMPERATURE,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS
-    ),
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key=SensorDeviceClass.PRESSURE,
-        device_class=SensorDeviceClass.PRESSURE,
-        native_unit_of_measurement=UnitOfPressure.HPA
-    ),
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key=SensorDeviceClass.HUMIDITY,
-        device_class=SensorDeviceClass.HUMIDITY,
-        native_unit_of_measurement=PERCENTAGE
-    ),
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key=SensorDeviceClass.WIND_SPEED,
-        device_class=SensorDeviceClass.WIND_SPEED,
-        native_unit_of_measurement=UnitOfSpeed.METERS_PER_SECOND
-    ),
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key=SensorDeviceClass.AQI,
-        device_class=SensorDeviceClass.AQI,
-        native_unit_of_measurement=None
-    ),
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key=SensorDeviceClass.CO,
-        device_class=SensorDeviceClass.CO,
-        native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION
-    ),
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key=SensorDeviceClass.NITROGEN_MONOXIDE,
-        device_class=SensorDeviceClass.NITROGEN_MONOXIDE,
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
-    ),
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key=SensorDeviceClass.NITROGEN_DIOXIDE,
-        device_class=SensorDeviceClass.NITROGEN_DIOXIDE,
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
-    ),
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key=SensorDeviceClass.OZONE,
-        device_class=SensorDeviceClass.OZONE,
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
-    ),
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key=SensorDeviceClass.SULPHUR_DIOXIDE,
-        device_class=SensorDeviceClass.SULPHUR_DIOXIDE,
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
-    ),
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key=SensorDeviceClass.PM25,
-        device_class=SensorDeviceClass.PM25,
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
-    ),
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key=SensorDeviceClass.PM10,
-        device_class=SensorDeviceClass.PM10,
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
-    ),
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key='sunrise',
-        device_class=SensorDeviceClass.TIMESTAMP,
-        native_unit_of_measurement=None
-    ),
-    KtwItsSensorEntityDescription(
-        group='weather',
-        key='sunset',
-        device_class=SensorDeviceClass.TIMESTAMP,
-        native_unit_of_measurement=None
-    ),
-)
+    state_class: SensorStateClass | str | None = SensorStateClass.MEASUREMENT
+    icon: str | None = None
+    device_info: DeviceInfo | None = None
+    options: list[str] | None = None

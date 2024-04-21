@@ -3,7 +3,7 @@ import asyncio
 import ssl
 import certifi
 
-from .const import WEATHER_DATA
+from .const import WEATHER_DATA, DOMAIN, DEFAULT_NAME
 from datetime import datetime, timedelta, timezone
 import logging
 from .coordinator import KtwItsCameraImageDto, KtwItsSensorDto
@@ -20,9 +20,9 @@ from homeassistant.const import (
     PERCENTAGE,
     UnitOfPressure,
     UnitOfTemperature,
-    UnitOfSpeed,
+    UnitOfSpeed, UnitOfTime, EntityCategory,
 )
-
+from ...helpers.device_registry import DeviceInfo, DeviceEntryType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,11 +63,14 @@ class KtwItsApi:
     def __init__(self):
         self.weather_data_valid_to: datetime | None = None
         self.weather_data: dict = {}
+        self.traffic_data: dict = {}
 
-    def fetch_data(self, groups: set):
+    async def fetch_data(self, groups: set | None = None) -> dict:
+        data: dict = {}
+        data.update(await self.__get_weather())
+        data.update(await self.__get_traffic())
 
-        return self.__get_weather()
-
+        return data
 
     async def get_camera_images_by_id(self, camera_id: int):
         return await make_request('https://its.katowice.eu/api/cameras/' + str(camera_id) + '/images')
@@ -106,7 +109,7 @@ class KtwItsApi:
                 (
                     SensorDeviceClass.TEMPERATURE,
                     KtwItsSensorDto(
-                        value=float(weather['temperature']),
+                        state=float(weather['temperature']),
                         entity_description=KtwItsSensorEntityDescription(
                             group='weather',
                             key=SensorDeviceClass.TEMPERATURE,
@@ -118,7 +121,7 @@ class KtwItsApi:
                 (
                     SensorDeviceClass.PRESSURE,
                     KtwItsSensorDto(
-                        value=int(weather['pressure']),
+                        state=int(weather['pressure']),
                         entity_description=
                         KtwItsSensorEntityDescription(
                             group='weather',
@@ -131,7 +134,7 @@ class KtwItsApi:
                 (
                     SensorDeviceClass.HUMIDITY,
                     KtwItsSensorDto(
-                        value=int(weather['humidity']),
+                        state=int(weather['humidity']),
                         entity_description=
                         KtwItsSensorEntityDescription(
                             group='weather',
@@ -144,7 +147,7 @@ class KtwItsApi:
                 (
                     SensorDeviceClass.WIND_SPEED,
                     KtwItsSensorDto(
-                        value=float(weather['windSpeed']),
+                        state=float(weather['windSpeed']),
                         entity_description=
                         KtwItsSensorEntityDescription(
                             group='weather',
@@ -157,7 +160,7 @@ class KtwItsApi:
                 (
                     SensorDeviceClass.AQI,
                     KtwItsSensorDto(
-                        value=int(weather['aqi']),
+                        state=int(weather['aqi']),
                         entity_description=
                         KtwItsSensorEntityDescription(
                             group='weather',
@@ -170,7 +173,7 @@ class KtwItsApi:
                 (
                     SensorDeviceClass.CO,
                     KtwItsSensorDto(
-                        value=float(weather['co']),
+                        state=float(weather['co']),
                         entity_description=
                         KtwItsSensorEntityDescription(
                             group='weather',
@@ -183,7 +186,7 @@ class KtwItsApi:
                 (
                     SensorDeviceClass.NITROGEN_MONOXIDE,
                     KtwItsSensorDto(
-                        value=float(weather['no']),
+                        state=float(weather['no']),
                         entity_description=
                         KtwItsSensorEntityDescription(
                             group='weather',
@@ -197,7 +200,7 @@ class KtwItsApi:
                 (
                     SensorDeviceClass.NITROGEN_DIOXIDE,
                     KtwItsSensorDto(
-                        value=float(weather['no2']),
+                        state=float(weather['no2']),
                         entity_description=
                         KtwItsSensorEntityDescription(
                             group='weather',
@@ -210,7 +213,7 @@ class KtwItsApi:
                 (
                     SensorDeviceClass.OZONE,
                     KtwItsSensorDto(
-                        value=float(weather['o3']),
+                        state=float(weather['o3']),
                         entity_description=
                         KtwItsSensorEntityDescription(
                             group='weather',
@@ -223,7 +226,7 @@ class KtwItsApi:
                 (
                     SensorDeviceClass.SULPHUR_DIOXIDE,
                     KtwItsSensorDto(
-                        value=float(weather['so2']),
+                        state=float(weather['so2']),
                         entity_description=
                         KtwItsSensorEntityDescription(
                             group='weather',
@@ -236,7 +239,7 @@ class KtwItsApi:
                 (
                     SensorDeviceClass.PM25,
                     KtwItsSensorDto(
-                        value=float(weather['pm2_5']),
+                        state=float(weather['pm2_5']),
                         entity_description=
                         KtwItsSensorEntityDescription(
                             group='weather',
@@ -249,7 +252,7 @@ class KtwItsApi:
                 (
                     SensorDeviceClass.PM10,
                     KtwItsSensorDto(
-                        value=float(weather['pm10']),
+                        state=float(weather['pm10']),
                         entity_description=
                         KtwItsSensorEntityDescription(
                             group='weather',
@@ -262,7 +265,7 @@ class KtwItsApi:
                 (
                     'sunrise',
                     KtwItsSensorDto(
-                        value=datetime.fromisoformat(weather['sunrise']),
+                        state=datetime.fromisoformat(weather['sunrise']),
                         entity_description=
                         KtwItsSensorEntityDescription(
                             group='weather',
@@ -275,7 +278,7 @@ class KtwItsApi:
                 (
                     'sunset',
                     KtwItsSensorDto(
-                        value=datetime.fromisoformat(weather['sunset']),
+                        state=datetime.fromisoformat(weather['sunset']),
                         entity_description=
                         KtwItsSensorEntityDescription(
                             group='weather',
@@ -290,3 +293,112 @@ class KtwItsApi:
 
         return self.weather_data
 
+    async def __get_traffic(self) -> Iterable[KtwItsSensorDto]:
+        traffic = await make_request('https://its.katowice.eu/api/traffic')
+
+        for feature in traffic['features']:
+            print(feature)
+            try:
+                avg_speed = int(feature['properties']['data']['avgSpeed'])
+            except KeyError:
+                continue
+
+            state_attributes = {
+                'update_date': datetime.fromisoformat(feature['properties']['data']['date_time']),
+                'longitude': float(feature['geometry']['coordinates'][1][0][0]),
+                'latitude': float(feature['geometry']['coordinates'][1][0][1]),
+            }
+
+            device_info = DeviceInfo(
+                entry_type=DeviceEntryType.SERVICE,
+                identifiers={(DOMAIN, feature['properties']['code'])},
+                manufacturer=DEFAULT_NAME,
+                name='Traffic volume ' + str(feature['properties']['name']) + ' [' + str(
+                    feature['properties']['code']) + ']',
+                serial_number=str(feature['properties']['description']),
+                configuration_url='https://its.katowice.eu',
+            )
+
+            key = DOMAIN + '_' + str(feature['properties']['code']) + '_avg_speed'
+
+            self.traffic_data.update([(
+                key,
+                KtwItsSensorDto(
+                    state=avg_speed,
+                    state_attributes=state_attributes,
+                    entity_description=
+                    KtwItsSensorEntityDescription(
+                        group='traffic',
+                        key=key,
+                        name='Average speed',
+                        device_class=SensorDeviceClass.SPEED,
+                        native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
+                        device_info=device_info,
+                    ),
+                )
+            )])
+
+            key = DOMAIN + '_' + str(feature['properties']['code']) + '_avg_time'
+
+            self.traffic_data.update([(
+                key,
+                KtwItsSensorDto(
+                    state=float(feature['properties']['data']['avg_time']),
+                    state_attributes=state_attributes,
+                    entity_description=
+                    KtwItsSensorEntityDescription(
+                        group='traffic',
+                        key=key,
+                        name='Average time',
+                        device_class=SensorDeviceClass.DURATION,
+                        native_unit_of_measurement=UnitOfTime.SECONDS,
+                        device_info=device_info,
+                        icon='mdi:car-clock',
+                    ),
+                )
+            )])
+
+            key = DOMAIN + '_' + str(feature['properties']['code']) + '_traffic'
+
+            self.traffic_data.update([(
+                key,
+                KtwItsSensorDto(
+                    state=int(feature['properties']['data']['traffic']),
+                    state_attributes=state_attributes,
+                    entity_description=
+                    KtwItsSensorEntityDescription(
+                        group='traffic',
+                        key=key,
+                        name='Traffic',
+                        device_class=None,
+                        native_unit_of_measurement=None,
+                        device_info=device_info,
+                        icon='mdi:car-multiple'
+                    ),
+                )
+            )])
+
+            key = DOMAIN + '_' + str(feature['properties']['code']) + '_traffic_period'
+
+            self.traffic_data.update([(
+                key,
+                KtwItsSensorDto(
+                    state=str(feature['properties']['data']['trafficPeriod']),
+                    state_attributes=state_attributes,
+                    entity_description=
+                    KtwItsSensorEntityDescription(
+                        group='traffic',
+                        key=key,
+                        name='Traffic period',
+                        device_class=SensorDeviceClass.ENUM,
+                        native_unit_of_measurement=None,
+                        state_class=None,
+                        device_info=device_info,
+                        icon='mdi:traffic-cone',
+                        options=['3', '10', '15'],
+                        entity_category=EntityCategory.DIAGNOSTIC,
+                    ),
+                )
+            )])
+
+        return self.traffic_data
